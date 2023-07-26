@@ -1,0 +1,105 @@
+import csv
+from pathlib import Path
+
+from test_name import TestName
+from lessons import Lesson
+
+__all__ = ['Student']
+
+# Список доступных уроков
+_LESSONS = ["Maths",
+                "Physics",
+                "Chemistry",
+                "History",
+                "Literature",
+                ]
+
+
+class Student:
+    """Класс студент."""
+    family = TestName()
+    name = TestName()
+    second_name = TestName()
+
+    def __init__(self, family: str, name: str, second_name: str):
+        """Инициализация экземпляра."""
+        self.family = family  # фамилия
+        self.name = name  # имя
+        self.second_name = second_name  # отчество
+        self._progress = []  # успеваемость по предметам список из Lesson
+        self._load_progress()
+
+    @property
+    def progress(self):
+        """Прогресс обучения делаем свойством, добавление новой дисциплины через метод append_to_progress"""
+        return self._progress
+
+    @property
+    def short_name(self):
+        """Свойство для получения короткого имени студента."""
+        return f"{self.family} {self.name[0]}.{self.second_name[0]}."
+
+    def __str__(self):
+        """Представление экземпляра в виде строки."""
+        return f'{self.family} {self.name} {self.second_name}'
+
+    def __repr__(self):
+        """Представление в виде строки генерации экземпляра класса."""
+        return f'Student({self.family}, {self.name}, {self.second_name})'
+
+    def _load_progress(self):
+        """Чтение успеваемости по предметам. Если у студента нет личных данных по успеваемости - создается
+        список предметов из общего списка доступных пред.
+        """
+        file_name = self.short_name + 'csv'
+        if Path(file_name).exists():
+            with open(file_name, "r", encoding="UTF-8") as file:
+                csv_reader = csv.reader(file, dialect="excel", quoting=csv.QUOTE_NONNUMERIC)
+                for row in csv_reader:
+                    new_lesson = Lesson(row[0], int(row[1]), int(row[2]))
+                    self.append_to_progress(new_lesson)
+
+    def save_progress(self):
+        """Сохранение информации об успеваемости студента."""
+        file_name = self.short_name + 'csv'
+        with open(file_name, "w", encoding="UTF-8", newline='') as file:
+            csv_writer = csv.writer(file, dialect="excel", quoting=csv.QUOTE_NONNUMERIC)
+            for lesson in self._progress:
+                csv_writer.writerow([lesson.name, lesson.rate_value, lesson.test_value])
+
+    def show_progress(self):
+        """Отображение успеваемости."""
+        result = "--------------------------------\n" \
+                 "     Lesson    | Grades | Test \n" \
+                 "--------------------------------\n"
+        for discipline in self._progress:
+            result += f"{discipline.name:16}|{discipline.rate_value:7} |{discipline.test_value:5}\n"
+        result += "--------------------------------"
+        return result
+
+    def find_discipline_in_progress(self, lesson: Lesson) -> bool:
+        """Поиск уроков в списке успеваемости студента."""
+        result = False
+        for les in self._progress:
+            if lesson == les:
+                result = True
+                break
+
+        return result
+
+    def append_to_progress(self, lesson: Lesson):
+        """Добавление новой дисциплины в список успеваемости студента.
+        Если дисциплина имеет недопустимое имя или присутствует в списке - вызывает ValueError
+        """
+        if lesson.name in _LESSONS and not self.find_discipline_in_progress(lesson):
+            self._progress.append(lesson)
+        else:
+            raise ValueError(f"{lesson.name} - недопустимый предмет, или уже есть в списке!")
+
+
+if __name__ == '__main__':
+    student_1 = Student('Ivanov', 'Ivan', 'Ivanovich')
+    student_2 = Student('Sidorova', 'Maria', 'Nikolaevna')
+
+    print(student_1.short_name)
+    print(student_2)
